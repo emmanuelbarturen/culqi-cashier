@@ -1,6 +1,5 @@
 <?php namespace Emm\CulqiCashier;
 
-use Culqi\Culqi;
 use Emm\CulqiCashier\Culqi\Card;
 use Emm\CulqiCashier\Culqi\Charge;
 use Emm\CulqiCashier\Culqi\Customer;

@@ -5,7 +5,6 @@ use Emm\CulqiCashier\Support\DTOs\CulqiDataMapping;
 use Exception;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
-use Illuminate\Validation\Factory as ValidatorFactory;
 
 /**
  * Trait Facturable
@@ -17,7 +16,7 @@ trait Facturable
     /**
      * @return CulqiDataMapping
      */
-    abstract protected function culqiDataMapping(): CulqiDataMapping;
+    abstract public function culqiDataMapping(): CulqiDataMapping;
 
 
     /**
@@ -133,7 +132,7 @@ trait Facturable
      */
     public function charge(float $amount, string $description, string $sourceId)
     {
-        $user = $this->culqiMappingAttributes();
+        $user = $this->culqiDataMapping()->data();
         $options = [
             'currency_code' => $this->preferredCurrencyCode(),
             'description' => $description,

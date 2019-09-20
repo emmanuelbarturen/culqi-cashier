@@ -16,6 +16,8 @@ class CulqiCashierServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->loadMigrationsFrom(__DIR__ . '/migrations');
+        $this->loadViewsFrom(__DIR__.'/views', 'culqi-cashier');
+        $this->loadRoutesFrom(__DIR__.'/routes.php');
     }
 
     /**
