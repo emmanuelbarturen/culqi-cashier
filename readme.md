@@ -1,5 +1,7 @@
 <h1>CulqiCashier</h1>
-El paquete que Si funciona
+
+Paquete en versión alfa, aún no disponible para producción
+
 ## Introduction
 
 ## Running CulqiCashier's Tests Locally
