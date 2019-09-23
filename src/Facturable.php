@@ -40,35 +40,35 @@ trait Facturable
      * https://culqi.com/api/#/clientes#create
      * @return array
      */
-   /* function culqiCustomerRules()
-    {
-        return [
-            "first_name" => 'required|min:2|max:50',
-            "last_name" => 'required|min:2|max:50',
-            "email" => 'required|email|min:5|max:50',
-            "address" => 'required|min:2|max:50',
-            "address_city" => 'required|min:2|max:50',
-            "country_code" => 'required|size:2',
-            "phone_number" => 'required|min:5|max:15',
-            "metadata" => 'array',
-        ];
-    }*/
+    /* function culqiCustomerRules()
+     {
+         return [
+             "first_name" => 'required|min:2|max:50',
+             "last_name" => 'required|min:2|max:50',
+             "email" => 'required|email|min:5|max:50',
+             "address" => 'required|min:2|max:50',
+             "address_city" => 'required|min:2|max:50',
+             "country_code" => 'required|size:2',
+             "phone_number" => 'required|min:5|max:15',
+             "metadata" => 'array',
+         ];
+     }*/
 
     /**
      * Check if current user has complete information to be culqi client
      * @return array
      */
-   /* public function validateCulqiCustomerData(): array
-    {
-        $userAttributes = $this->culqiMappingAttributes();
-        $translator = new Translator(new ArrayLoader(), 'es_PE');
-        $validatorFactory = new ValidatorFactory($translator);
-        $validator = $validatorFactory->make($userAttributes, $this->culqiCustomerRules());
-        if ($validator->fails()) {
-            return $validator->messages()->messages();
-        }
-        return [];
-    }*/
+    /* public function validateCulqiCustomerData(): array
+     {
+         $userAttributes = $this->culqiMappingAttributes();
+         $translator = new Translator(new ArrayLoader(), 'es_PE');
+         $validatorFactory = new ValidatorFactory($translator);
+         $validator = $validatorFactory->make($userAttributes, $this->culqiCustomerRules());
+         if ($validator->fails()) {
+             return $validator->messages()->messages();
+         }
+         return [];
+     }*/
 
     /**
      * @return \Culqi\create|mixed
@@ -127,16 +127,17 @@ trait Facturable
      *
      * @param float $amount
      * @param string $description
-     * @param $sourceId
+     * @param string $sourceId
+     * @param array $data
      * @return \Culqi\create
      */
-    public function charge(float $amount, string $description, string $sourceId)
+    public function charge(float $amount, string $description, string $sourceId, array $data)
     {
         $user = $this->culqiDataMapping()->data();
         $options = [
             'currency_code' => $this->preferredCurrencyCode(),
             'description' => $description,
-            'email' => $user['email'],
+            'email' => $data['email'] ?? $user['email'],
             'amount' => $amount * 100,
             'source_id' => $sourceId,
             'antifraud_details' => $user,

@@ -67,7 +67,7 @@ class CulqiDataMapping
      */
     function data(): array
     {
-        return [
+        return array_filter([
             "first_name" => $this->firstName,
             "last_name" => $this->lastName,
             "email" => $this->email,
@@ -75,7 +75,7 @@ class CulqiDataMapping
             "address_city" => 'Lima',
             "country_code" => 'PE',
             "phone_number" => $this->phone,
-        ];
+        ]);
     }
 
     /**

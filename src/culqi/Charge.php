@@ -13,15 +13,11 @@ class Charge extends ApiResource
     /**
      * @param array $options
      * @return \Culqi\create|null
+     * @throws \Culqi\Error\InvalidApiKey
      */
     public function create(array $options)
     {
-        try {
-            $instance = self::_instance();
-            return $instance->Charges->create($options);
-        } catch (Exception $e) {
-            logger($e);
-            return null;
-        }
+        $instance = self::_instance();
+        return $instance->Charges->create($options);
     }
 }

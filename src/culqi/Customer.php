@@ -58,16 +58,12 @@ class Customer extends ApiResource
     /**
      * @param $customerId
      * @return \Culqi\get|null
+     * @throws \Culqi\Error\InvalidApiKey
      */
     public function find(string $customerId)
     {
-        try {
-            $instance = self::_instance();
-            return $instance->Customers->get($customerId);
-        } catch (Exception $e) {
-            logger($e);
-            return null;
-        }
+        $instance = self::_instance();
+        return $instance->Customers->get($customerId);
     }
 
     /**
