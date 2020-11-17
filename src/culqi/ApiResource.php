@@ -36,7 +36,7 @@ abstract class ApiResource
             return static::$culqiKey;
         }
 
-        if ($key = getenv('CULQI_SECRET')) {
+        if ($key = env('CULQI_SECRET')) {
             return $key;
         }
 

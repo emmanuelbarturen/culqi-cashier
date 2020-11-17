@@ -1,5 +1,6 @@
 <?php namespace Emm\CulqiCashier\Culqi;
 
+use Culqi\Culqi;
 use Emm\CulqiCashier\CulqiCashier;
 
 

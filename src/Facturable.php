@@ -1,10 +1,11 @@
 <?php namespace Emm\CulqiCashier;
 
 use Culqi\Error\InvalidApiKey;
-use Emm\CulqiCashier\Support\DTOs\CulqiDataMapping;
+use Emm\CulqiCashier\Events\CulqiCharged;
+use Emm\CulqiCashier\Events\CulqiCustomerCreated;
+use Emm\CulqiCashier\Events\CulqiCustomerSubscribed;
+use Emm\CulqiCashier\Events\CulqiCustomerUpdated;
 use Exception;
-use Illuminate\Translation\ArrayLoader;
-use Illuminate\Translation\Translator;
 
 /**
  * Trait Facturable
@@ -14,112 +15,82 @@ trait Facturable
 {
 
     /**
-     * @return CulqiDataMapping
+     * @var string
      */
-    abstract public function culqiDataMapping(): CulqiDataMapping;
+    protected $culqiCustomerField = 'culqi_customer_id';
 
 
     /**
-     * @return mixed
-     */
-    /*function culqiMappingAttributes(): array
-    {
-        return [
-            "first_name" => $this->names,
-            "last_name" => $this->last_name,
-            "email" => $this->email,
-            "address" => $this->address,
-            "address_city" => 'Lima',
-            "country_code" => 'PE',
-            "phone_number" => $this->phone,
-        ];
-    }*/
-
-    /**
-     * rules at
-     * https://culqi.com/api/#/clientes#create
      * @return array
      */
-    /* function culqiCustomerRules()
-     {
-         return [
-             "first_name" => 'required|min:2|max:50',
-             "last_name" => 'required|min:2|max:50',
-             "email" => 'required|email|min:5|max:50',
-             "address" => 'required|min:2|max:50',
-             "address_city" => 'required|min:2|max:50',
-             "country_code" => 'required|size:2',
-             "phone_number" => 'required|min:5|max:15',
-             "metadata" => 'array',
-         ];
-     }*/
+    abstract public function culqiAntiFraud(): array;
 
     /**
-     * Check if current user has complete information to be culqi client
      * @return array
      */
-    /* public function validateCulqiCustomerData(): array
-     {
-         $userAttributes = $this->culqiMappingAttributes();
-         $translator = new Translator(new ArrayLoader(), 'es_PE');
-         $validatorFactory = new ValidatorFactory($translator);
-         $validator = $validatorFactory->make($userAttributes, $this->culqiCustomerRules());
-         if ($validator->fails()) {
-             return $validator->messages()->messages();
-         }
-         return [];
-     }*/
-
-    /**
-     * @return \Culqi\create|mixed
-     * @throws \Culqi\Error\InvalidApiKey
-     * @throws \Exception
-     */
-    public function createCulqiCustomer()
+    private function getCustomerData(): array
     {
-        if (!array_key_exists('culqi_customer_id', get_object_vars($this)['attributes'])) {
-            throw new Exception('No se ha encontrado el campo culqi_customer_id');
-        }
-
-        $userDetails = $this->culqiDataMapping()->toArray();
-        $userDetails['phone_number'] = str_replace([' '], "", $userDetails['phone_number']);
-
-        $culqiCustomer = CulqiCashier::Customer()->exists($userDetails['email']);
-        if ($culqiCustomer === null) {
-            $culqiCustomer = CulqiCashier::Customer()->store($userDetails);
-        } else {
-            $culqiCustomer = CulqiCashier::Customer()->update($culqiCustomer->id, $userDetails);
-        }
-
-        $this->culqi_customer_id = $culqiCustomer->id;
-        $this->save();
-
-        return 'Culqi Customer Created!';
+        return array_filter($this->culqiAntiFraud());
     }
 
     /**
-     * @return \Culqi\create|mixed|null
+     * @param array $base
+     * @param array $new
+     * @return array
      */
-    public function culqiAttemptCustomer()
+    private function replace(array $base, array $new)
     {
-        try {
-            if (!$this->culqi_customer_id) {
-                $errors = $this->validateCulqiCustomerData();
-                if (empty($errors)) {
-                    return $this->createCulqiCustomer();
-                } else {
-                    return $errors;
-                }
+        foreach ($new as $key => $val) {
+            if (isset($base[$key])) {
+                $base[$key] = $val;
             }
-        } catch (InvalidApiKey $e) {
-            logger()->emergency($e->getMessage());
-            return null;
-        } catch (Exception $ex) {
-            logger()->emergency($ex->getMessage());
-            return null;
+        }
+        return $base;
+    }
+
+    /**
+     * @param array $antifraud
+     * @return \Culqi\create|mixed
+     * @throws InvalidApiKey
+     * @throws Exception
+     */
+    public function createCulqiCustomer(array $antifraud = [])
+    {
+        if (!array_key_exists($this->culqiCustomerField, get_object_vars($this)['attributes'])) {
+            throw new Exception('No se ha encontrado el campo ' . $this->culqiCustomerField);
         }
 
+        $customerData = $this->replace($this->getCustomerData(), $antifraud);
+        $customerData['phone_number'] = str_replace([' '], "", $customerData['phone_number']);
+
+        $culqiCustomer = CulqiCashier::Customer()->exists($customerData['email']);
+        if ($culqiCustomer === null) {
+            $culqiCustomer = CulqiCashier::Customer()->store($customerData);
+        } else {
+            $culqiCustomer = CulqiCashier::Customer()->update($culqiCustomer->id, $customerData);
+        }
+
+        $this->{$this->culqiCustomerField} = $culqiCustomer->id;
+        if ($this->save()) {
+            event(new CulqiCustomerCreated($culqiCustomer));
+            return $culqiCustomer;
+        }
         return null;
+    }
+
+    /**
+     * @param array $details
+     * @return \Culqi\update
+     * @throws InvalidApiKey
+     */
+    public function updateCulqiCustomer(array $details)
+    {
+        $customerData = $this->getCustomerData();
+        $updatedData = $this->replace($customerData, $details);
+        $culqiCustomer = CulqiCashier::Customer()->exists($customerData['email']);
+        $updated = CulqiCashier::Customer()->update($culqiCustomer->id, $updatedData);
+        event(new CulqiCustomerUpdated($updated));
+        return $updated;
     }
 
     /**
@@ -128,22 +99,26 @@ trait Facturable
      * @param float $amount
      * @param string $description
      * @param string $sourceId
-     * @param array $data
+     * @param array $antifraud
      * @return \Culqi\create
+     * @throws InvalidApiKey
      */
-    public function charge(float $amount, string $description, string $sourceId, array $data)
+    public function charge(float $amount, string $description, string $sourceId, array $antifraud = [])
     {
-        $user = $this->culqiDataMapping()->data();
+        $user = $this->getCustomerData();
+        $updatedData = $this->replace($user, $antifraud);
         $options = [
-            'currency_code' => $this->preferredCurrencyCode(),
+            'currency_code' => CulqiCashier::usesCurrency(),
             'description' => $description,
-            'email' => $data['email'] ?? $user['email'],
+            'email' => $data['email'] ?? $updatedData['email'],
             'amount' => $amount * 100,
             'source_id' => $sourceId,
-            'antifraud_details' => $user,
+            'antifraud_details' => $updatedData,
         ];
 
-        return CulqiCashier::Charge()->create($options);
+        $created = CulqiCashier::Charge()->create($options);
+        event(new CulqiCharged($created));
+        return $created;
     }
 
     /**
@@ -153,17 +128,41 @@ trait Facturable
      */
     public function culqiStoreCreditCard($token)
     {
-        return CulqiCashier::Card()->create($this->culqi_customer_id, $token);
+        return CulqiCashier::Card()->create($this->{$this->culqiCustomerField}, $token);
     }
 
     /**
-     * Get the Culqi supported currency used by the entity.
-     *
-     * @return string
+     * @param string $planId
+     * @param string $sourceId
+     * @return \Culqi\create
+     * @throws InvalidApiKey
+     * @throws Exception
      */
-    public function preferredCurrencyCode()
+    public function culqiSubscription(string $planId, string $sourceId)
     {
-        return CulqiCashier::usesCurrency();
+        if (!array_key_exists('culqi_customer_id', get_object_vars($this)['attributes'])) {
+            throw new Exception('No se ha encontrado el campo culqi_customer_id');
+        }
+
+        if (is_null($this->{$this->culqiCustomerField})) {
+            $this->createCulqiCustomer();
+        }
+
+        $card = CulqiCashier::Card()->create($this->{$this->culqiCustomerField}, $sourceId);
+        $suscription = CulqiCashier::Subscription()->create($card->id, $planId);
+        event(new CulqiCustomerSubscribed($suscription));
+        return $suscription;
     }
 
+    /**
+     * @param string $subscriptionId
+     * @return \Culqi\delete
+     * @throws InvalidApiKey
+     */
+    public function culqiUnsubscription(string $subscriptionId)
+    {
+        $cancel = CulqiCashier::Subscription()->cancel($subscriptionId);
+        event(new CulqiCustomerSubscribed($cancel));
+        return $cancel;
+    }
 }

@@ -3,6 +3,7 @@
 use Emm\CulqiCashier\Culqi\Card;
 use Emm\CulqiCashier\Culqi\Charge;
 use Emm\CulqiCashier\Culqi\Customer;
+use Emm\CulqiCashier\Culqi\Plan;
 use Emm\CulqiCashier\Culqi\Subscription;
 
 /**
@@ -29,6 +30,7 @@ class CulqiCashier
     }
 
     /**
+     * This not work
      * @return Card
      */
     public static function Card(): Card
@@ -53,10 +55,18 @@ class CulqiCashier
     }
 
     /**
+     * @return Plan
+     */
+    public static function Plan(): Plan
+    {
+        return new Plan();
+    }
+
+    /**
      * @return string
      */
     public static function usesCurrency()
     {
-        return static::$currency;
+        return env('CULQI_CURRENCY') ?? static::$currency;
     }
 }

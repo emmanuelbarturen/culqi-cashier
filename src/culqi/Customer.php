@@ -1,7 +1,5 @@
 <?php namespace Emm\CulqiCashier\Culqi;
 
-use Exception;
-
 
 /**
  * Class Customer

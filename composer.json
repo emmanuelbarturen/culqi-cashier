@@ -16,9 +16,12 @@
   ],
   "require": {
     "php": ">=7.0.0",
-    "culqi/culqi-php": "1.3.4"
+    "ext-json": "*",
+    "culqi/culqi-php": "1.3.5",
+    "vlucas/phpdotenv": "^5.2"
   },
   "require-dev": {
+    "phpunit/phpunit": "^8"
   },
   "autoload": {
     "psr-4": {
@@ -31,6 +34,7 @@
     }
   },
   "extra": {
+    "branch-version": "4.2-dev",
     "laravel": {
       "providers": [
         "Emm\\CulqiCashier\\CulqiCashierServiceProvider"

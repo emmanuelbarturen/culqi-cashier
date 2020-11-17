@@ -7,7 +7,7 @@
 <div>
     <label>
         <span>endpoint</span>
-        <input type="text" value="{{request()->get('url','/api/culqi/payment')}}" id="endpoint" >
+        <input type="text" value="{{request()->get('url','/api/v1/culqi/payment')}}" id="endpoint">
     </label>
 </div>
 //Aquí creamos el formulario de captura de la tarjeta
@@ -37,48 +37,47 @@
             <input type="text" size="2" data-culqi="card[exp_month]" id="card[exp_month]" value="09">
         </label>
         <span>/</span>
-        <input type="text" size="4" data-culqi="card[exp_year]" id="card[exp_year]" value="2020">
+        <input type="text" size="4" data-culqi="card[exp_year]" id="card[exp_year]" value="2025">
     </div>
-    <button id="buyButton" type="button">Pagar</button>
+    <button onclick="payment()" type="button">Pagar</button>
 </form>
 <footer class="footer">
     <div class="container">
         <p class="text-muted">Una implementación de Culqi en Laravel</p>
     </div>
 </footer>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
-      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://checkout.culqi.com/v2"></script>
-<!-- Configurando el checkout-->
 <script>
     Culqi.publicKey = '{{env('CULQI_PUBLIC')}}';
     Culqi.init();
     var checkTarjeta = false;
-    $('#buyButton').on('click', function (e) {
-        // Abre el formulario con las opciones de Culqi.settings
-        e.preventDefault();
+
+    function payment() {
         Culqi.createToken();
-    });
+    }
 
     function culqi() {
         if (Culqi.token) { // ¡Token creado exitosamente!
-            // Get the token ID:
-            var token = Culqi.token.id;
-            var url = document.getElementById('endpoint').value;
-            console.log(url);
-            $.ajax({
-                url: url,
+            const token = Culqi.token.id;   // Get the token ID:
+            const url = document.getElementById('endpoint').value;
+            const data = new FormData();
+            data.append('_token', '{{csrf_token()}}');
+            data.append('culqi_token', token);
+
+            fetch(url, {
                 method: 'POST',
-                data: {_token: '{{csrf_token()}}', culqiToken: token}
-            }).done(function (response) {
-                if (response.status === 'error') {
-                    var msg = JSON.parse(response.msg);
-                    alert(msg.merchant_message)
+                body: data
+            }).then(function (response) {
+                if (response.ok) {
+                    return response.text()
                 } else {
-                    alert('yeah!');
+                    throw "Error en la llamada Ajax";
                 }
+
+            }).then(function (texto) {
+                console.log(texto);
+            }).catch(function (err) {
+                console.log(err);
             });
 
         } else { // ¡Hubo algún problema!
